@@ -24,11 +24,13 @@
 
 ## 注
 
-数据集展示请移步:
+**数据集展示请移步:**
 
-[ GitHub 地址]:https://github.com/PineDx/movie.github.io
-[具体脚本]:https://www.jianshu.com/p/5ad6553db6fb
-[页面展示]:https://www.xwwmr.top/
+GitHub 地址:	https://github.com/PineDx/movie.github.io
+
+具体脚本:	https://www.jianshu.com/p/5ad6553db6fb
+
+页面展示:	https://www.xwwmr.top/
 
 最新脚本与简书描述有些许偏差
 
