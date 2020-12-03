@@ -48,8 +48,6 @@ class BaiHe(object):
 
     # 创建栏目的json文件
     def run(self):
-        self.reader_json()
-        exit(0)
         text = requests.get(self.url, headers=self.header).text
         soup = BeautifulSoup(text, 'lxml').select(".nav")[0]
         ul = soup.find_all('li')
