@@ -1,24 +1,18 @@
 import os
 import requests
 import time
-import random
 import json
 from bs4 import BeautifulSoup
 
 
 def main():
     base_url = 'https://www.bhhzw.com/'
-    uap = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.18362",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:73.0) Gecko/20100101 Firefox/73.0"
-    ]
     headers = {
         "Referer": base_url,
-        'User-Agent': random.choice(uap)
+        'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 Safari/537.36"
     }
     # 初始化应用程序
-    Application = BaiHe(base_url, headers, 2)
+    Application = BaiHe(base_url, headers, 5)
     print("\t程序初始化完成")
     # 运行程序
     print("\t程序开始运行")
@@ -54,6 +48,8 @@ class BaiHe(object):
 
     # 创建栏目的json文件
     def run(self):
+        self.reader_json()
+        exit(0)
         text = requests.get(self.url, headers=self.header).text
         soup = BeautifulSoup(text, 'lxml').select(".nav")[0]
         ul = soup.find_all('li')
@@ -79,18 +75,21 @@ class BaiHe(object):
         for item in cates:
             url = item["href"]
             page = item["pages"]
-            for index in range(1, page + 1):
+            authors = []
+            # for index in range(1, page + 1):
+            for index in range(1, page+1):
                 # 页面轮询
                 page_url = url + str(index)
                 time.sleep(3)
-                text = requests.get(page_url, headers=self.header, timeout=self.timeout).text
+                text = requests.get(page_url, headers=self.header).text
                 items = BeautifulSoup(text, 'lxml').select(".item-link")
                 # 获取作者地址
-                authors, count = get_authors(items)
-                item['count'] = count
-                item['g'] = authors
+                author = get_authors(items)
+                authors = authors + author
+            item['count'] = len(authors)
+            item['g'] = authors
             # 写入json
-            jsondir = self.path + '/json'
+            jsondir = self.path + '/jsons/'
             file = jsondir + item['title'] + ".json"
             # 创建json文件夹
             createdir(jsondir)
@@ -100,36 +99,36 @@ class BaiHe(object):
 
     # 读取json文件
     def reader_json(self):
-        dirs = self.path + "/json"
+        dirs = self.path + "/jsons"
         files = os.listdir(dirs)
         for file in files:
-            file_path = dirs + "/" + file
-            data = read(file_path)
+            path1 = dirs + "/" + file
+            data = read(path1)
             # 一层级文件夹
             folder_name = data['title']
-            file_path = self.path + '/' + folder_name
+            file_path = self.path + '/mm/' + folder_name
             # 创建一级文件夹
+            print("创建文件夹" + folder_name)
             createdir(file_path)
             # 妹子单独
             meizi_list = data['g']
             self.download_img(meizi_list, file_path, folder_name)
 
     def download_img(self, gorup, path, title):
-        start = 0 if not self.mark else self.mark['title']['index']
+        start = 0 if not self.mark else self.mark[title]['index']
         if not self.mark:
-            # 创建mark标记
-            mark = 
-            self.mark = {"title": title}
+            # 创建mark标记 ,第一次全部创建
+            self.mark = createmark()
         # 路径转义
-        for index in range(start, len(gorup) + 1):
+        for index in range(start, len(gorup)+1):
             va1 = gorup[index]['filename']
             href = gorup[index]['href']
-            filename = va1.replace(' ', '')
+            filename = va1.strip()
             meizidir = path + '/' + filename
             # 创建妹子文件夹
             createdir(meizidir)
-            time.sleep(2)
-            text = requests.get(href, headers=self.header, timeout=self.timeout).text
+            time.sleep(3)
+            text = requests.get(href, headers=self.header).text
             img = BeautifulSoup(text, 'lxml').select('#masonry div img')
             imgs = []
             for data in img:
@@ -138,14 +137,14 @@ class BaiHe(object):
             for url_img in imgs:
                 img_data = requests.get(url_img, headers=self.header)
                 file_name = str(i) + '.jpg'
-                path = meizidir + '/' + file_name
+                img_path = meizidir + '/' + file_name
                 try:
-                    with open(path, 'wb') as f:
+                    with open(img_path, 'wb') as f:
                         f.write(img_data.content)
                         print("\t|" + file_name + '\tSuccessful')
                 except Exception as E:
                     print("图片下载失败原因:" + E)
-                    self.mark['index'] = index
+                    self.mark[title]['index'] = index
                     write(self.path, self.mark)
                     exit(-1)
                 i += 1
@@ -160,8 +159,9 @@ def get_authors(items):
         href = p['href']
         author['filename'] = filename.replace("\n", "")
         author['href'] = href
+        print(author['filename']+'\t'+author['href'])
         authors.append(author)
-    return authors, len(authors)
+    return authors
 
 
 # 创建文件夹
@@ -195,6 +195,16 @@ def read(path):
         return
     return data
 
+
+# 创建mark标记文件
+def createmark():
+    data = {}
+    dirs = os.getcwd() + "/jsons"
+    files = os.listdir(dirs)
+    for title in files:
+        title = title[:4]
+        data[title] = {"index": 0}
+    return data
 
 if __name__ == '__main__':
     main()
